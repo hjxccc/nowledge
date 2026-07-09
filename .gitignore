@@ -22,3 +22,6 @@ scripts/_xcache/
 .DS_Store
 Thumbs.db
 .playwright-mcp/
+
+# 演示 gif 默认不入库（不太好的别误 push；选定好的用 git add -f 强制收）
+*.gif

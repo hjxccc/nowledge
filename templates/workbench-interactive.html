@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<!--
+  nowledge 交互模板（其二）· "工作台/模拟器" 型 —— 配置 → 触发 → 逐步观察
+  ============================================================
+  和 diagram-interactive.html 的区别：
+    diagram-interactive = "拖一个量看曲线变"（连续参数 → 可视化）
+    workbench           = "配置一个机制 → 触发 → 看它一步步跑"（离散状态机/流程/协议/注册表）
+  何时用：机制的核心是"事件流过一套规则/注册表，产生一串因果步骤"——
+    hooks、权限决策、agent loop、状态机、协议握手、调度……让学习者亲手拨开关看后果。
+  灵感来源：learn.shareai.run 每节的 Workbench（它用 React，这里证明纯原生 JS 同样能做，且零构建）。
+  换主题只改 3 处 ★：
+    ★1 SCENARIO —— 可配置的部件（这里=hooks 注册表）+ 可触发的输入（这里=工具调用）
+    ★2 simulate() —— 触发后的因果逻辑，产出一串 trace 步骤（每步 {text, kind}）
+    ★3 文案/图例
+  内置示例 = Claude Code Hook Workbench（s04），可直接当参考删改。
+-->
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>Hook Workbench · 交互模拟器</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0a0e14; color:#e6edf3; min-height:100vh; display:flex; flex-direction:column;
+         align-items:center; font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; padding:26px; }
+  h1 { font-size:21px; font-weight:800; } h1 .g{ color:#3fd39a; }
+  .sub { color:#8b98a9; font-size:13px; margin:6px 0 18px; text-align:center; max-width:760px; }
+  .wrap { display:grid; grid-template-columns:340px 400px; gap:18px; }
+  .card { background:#11161f; border:1px solid #1e2733; border-radius:12px; padding:16px; }
+  .card h3 { font-size:13px; color:#8b98a9; font-weight:700; margin-bottom:12px; text-transform:uppercase; letter-spacing:1px; }
+  .hook { display:flex; align-items:center; gap:10px; padding:9px 11px; margin-bottom:8px; border-radius:9px;
+          border:1px solid #232a35; background:#0d1219; cursor:pointer; transition:.15s; }
+  .hook.on { border-color:#2b8a67; background:#0f1c17; }
+  .hook .dot { width:9px; height:9px; border-radius:50%; background:#3a4453; flex-shrink:0; }
+  .hook.on .dot { background:#3fd39a; }
+  .hook .name { font-size:13px; flex:1; }
+  .hook .ev { font-size:11px; font-family:Consolas,monospace; color:#6cb6ff; }
+  .hook .res { font-size:11px; font-weight:700; padding:1px 7px; border-radius:5px; }
+  .res.allow{color:#3fd39a;background:#123528;} .res.deny{color:#ff6b63;background:#33161a;}
+  .res.ask{color:#ffcf5c;background:#332a12;} .res.log{color:#8b98a9;background:#1b212b;}
+  .toolsel { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
+  .tool { padding:10px 12px; border:1px solid #232a35; border-radius:9px; background:#0d1219; cursor:pointer; font-size:13px; }
+  .tool.sel { border-color:#2a577d; background:#12233a; }
+  .tool .cmd { font-family:Consolas,monospace; color:#c9d4e0; }
+  .tool .danger { color:#ff6b63; }
+  .btns { display:flex; gap:9px; margin-bottom:8px; }
+  button { background:#17324a; color:#cfe3ff; border:1px solid #2a577d; border-radius:8px;
+           padding:9px 16px; font-size:13px; cursor:pointer; font-weight:600; }
+  button:hover{ background:#1d436b; } button.primary{ background:#155e45; border-color:#2b8a67; color:#c9ffe8; }
+  .trace { min-height:300px; font-family:Consolas,monospace; font-size:12.5px; line-height:1.65; }
+  .step { padding:4px 10px; margin-bottom:4px; border-left:3px solid #232a35; padding-left:12px; opacity:0; animation:in .25s forwards; }
+  @keyframes in { to{opacity:1;} }
+  .step.call{border-color:#6cb6ff;color:#9ecbff;} .step.fire{border-color:#8b98a9;color:#c9d4e0;}
+  .step.allow{border-color:#3fd39a;color:#7fe6bb;} .step.deny{border-color:#ff6b63;color:#ff9089;}
+  .step.ask{border-color:#ffcf5c;color:#ffdd86;} .step.exec{border-color:#2f6df0;color:#9ecbff;}
+  .step.invariant{border-color:#ff6b63;background:#2a1114;color:#ff9089;font-weight:700;}
+  .step.verdict{font-size:14px;font-weight:800;padding:8px 12px;border-radius:6px;margin-top:6px;}
+  .verdict.allow{background:#123528;color:#3fd39a;} .verdict.deny{background:#33161a;color:#ff6b63;}
+  .tip { margin-top:14px; font-size:12.5px; color:#7d8794; max-width:760px; line-height:1.7; }
+  .tip .k{ color:#6cb6ff; font-family:Consolas,monospace; }
+</style>
+</head>
+<body>
+  <h1>Hook <span class="g">Workbench</span></h1>
+  <div class="sub">循环故意保持"无聊"：它只喊 <code style="font-family:Consolas">trigger_hooks(event)</code>，<b>注册表决定跑什么</b>。左边拨 hook 开关、选工具调用 → 触发 → 右边看它一步步跑。</div>
+
+  <div class="wrap">
+    <div class="card">
+      <h3>① Hook 注册表（点击开关）</h3>
+      <div id="hooks"></div>
+      <h3 style="margin-top:16px">② 选一个工具调用</h3>
+      <div class="toolsel" id="tools"></div>
+      <div class="btns">
+        <button class="primary" id="run">▶ 触发</button>
+        <button id="reset">↺ 重置</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>③ 执行轨迹 trace</h3>
+      <div class="trace" id="trace"></div>
+    </div>
+  </div>
+
+  <div class="tip">💡 <b>试这个坑（s04 关键不变式）</b>：打开那个 <span class="k">force-allow</span> hook，再选 <span class="k">Bash: rm -rf /</span> 触发——你会看到即使有 hook 喊 allow，<b style="color:#ff9089">deny 规则仍然赢</b>。<span class="k">hook 的 allow 不能绕过 deny/ask</span>，这是 s04 必记的一条。</div>
+
+<script>
+// ===== ★1 SCENARIO：可配置部件（hooks）+ 可触发输入（工具调用）=====
+const HOOKS = [
+  { id:'audit',  name:'审计每次 Bash',      event:'PreToolUse',  match:'Bash',  res:'log',   on:true  },
+  { id:'guard',  name:'拦截危险 rm',         event:'PreToolUse',  match:'Bash',  res:'deny',  on:true  },
+  { id:'confirm',name:'写文件前先问',        event:'PreToolUse',  match:'Write', res:'ask',   on:true  },
+  { id:'force',  name:'force-allow(想强开)', event:'PreToolUse',  match:'*',     res:'allow', on:false },
+  { id:'gitadd', name:'操作后自动 git add',  event:'PostToolUse', match:'Write', res:'log',   on:true  },
+];
+const TOOLS = [
+  { id:'rm',   name:'Bash', cmd:'rm -rf /', danger:true },
+  { id:'ls',   name:'Bash', cmd:'ls -la',   danger:false },
+  { id:'write',name:'Write',cmd:'config.json', danger:false },
+  { id:'read', name:'Read', cmd:'README.md',   danger:false },
+];
+// 基础权限规则（hook 之外的硬规则）——用来演示"allow 挡不住 deny"
+const BASE_DENY = call => call.name==='Bash' && /rm\s+-rf/.test(call.cmd);
+let selTool = 'rm';
+
+// ===== ★2 simulate：触发后的因果逻辑，产出一串 trace 步骤 =====
+function simulate(){
+  const call = TOOLS.find(t=>t.id===selTool);
+  const steps = [];
+  steps.push({t:`loop: trigger_hooks("PreToolUse", {tool:"${call.name}", cmd:"${call.cmd}"})`, k:'call'});
+  const pre = HOOKS.filter(h=>h.on && h.event==='PreToolUse' && (h.match==='*'||h.match===call.name));
+  const results = [];
+  if(pre.length===0) steps.push({t:'  (无匹配的 PreToolUse hook)', k:'fire'});
+  pre.forEach(h=>{ results.push(h.res);
+    steps.push({t:`  ▸ hook「${h.name}」触发 → 返回 ${h.res.toUpperCase()}`, k:h.res}); });
+  // 硬规则
+  const baseDeny = BASE_DENY(call);
+  if(baseDeny) { results.push('deny'); steps.push({t:'  ▸ 基础规则: rm -rf 命中 deny 名单', k:'deny'}); }
+  // 决策（不变式：deny > ask > allow；任何 allow 都不能覆盖 deny）
+  let decision='allow';
+  if(results.includes('deny')) decision='deny';
+  else if(results.includes('ask')) decision='ask';
+  if(results.includes('allow') && decision==='deny')
+    steps.push({t:'⚠ 不变式：有 hook 喊 allow，但 allow 不能绕过 deny → 仍然 DENY', k:'invariant'});
+  steps.push({t:(decision==='deny'?'✗ 决策：BLOCKED':decision==='ask'?'? 决策：需用户确认':'✓ 决策：ALLOW'),
+              k:'verdict', decision});
+  // 执行 + PostToolUse
+  if(decision==='allow'){
+    steps.push({t:`执行工具 ${call.name}(${call.cmd})`, k:'exec'});
+    steps.push({t:`loop: trigger_hooks("PostToolUse", ...)`, k:'call'});
+    const post = HOOKS.filter(h=>h.on && h.event==='PostToolUse' && (h.match==='*'||h.match===call.name));
+    if(post.length===0) steps.push({t:'  (无匹配的 PostToolUse hook)', k:'fire'});
+    post.forEach(h=> steps.push({t:`  ▸ hook「${h.name}」触发 → ${h.res.toUpperCase()}`, k:h.res}));
+  } else {
+    steps.push({t:'工具未执行（被 hook/规则拦下）', k:'deny'});
+  }
+  return steps;
+}
+
+// ===== 渲染（一般不用改）=====
+const hooksEl=document.getElementById('hooks'), toolsEl=document.getElementById('tools'), traceEl=document.getElementById('trace');
+function drawHooks(){
+  hooksEl.innerHTML='';
+  HOOKS.forEach(h=>{ const d=document.createElement('div'); d.className='hook'+(h.on?' on':'');
+    d.innerHTML=`<span class="dot"></span><span class="name">${h.name}</span>`+
+      `<span class="ev">${h.event}</span><span class="res ${h.res}">${h.res}</span>`;
+    d.onclick=()=>{ h.on=!h.on; drawHooks(); }; hooksEl.appendChild(d); });
+}
+function drawTools(){
+  toolsEl.innerHTML='';
+  TOOLS.forEach(t=>{ const d=document.createElement('div'); d.className='tool'+(t.id===selTool?' sel':'');
+    d.innerHTML=`<span class="cmd ${t.danger?'danger':''}">${t.name}: ${t.cmd}</span>`;
+    d.onclick=()=>{ selTool=t.id; drawTools(); }; toolsEl.appendChild(d); });
+}
+function runSim(){
+  traceEl.innerHTML=''; const steps=simulate(); let i=0;
+  (function next(){ if(i>=steps.length) return; const s=steps[i++];
+    const el=document.createElement('div');
+    el.className='step '+s.k+(s.k==='verdict'?' verdict '+s.decision:'');
+    el.textContent=s.t; el.style.animationDelay='0s'; traceEl.appendChild(el);
+    setTimeout(next, 260); })();
+}
+document.getElementById('run').onclick=runSim;
+document.getElementById('reset').onclick=()=>{ HOOKS.forEach(h=>h.on=(h.id!=='force')); selTool='rm'; drawHooks(); drawTools(); traceEl.innerHTML=''; };
+drawHooks(); drawTools();
+</script>
+</body>
+</html>

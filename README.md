@@ -1,7 +1,9 @@
 # Nowledge
 
-> # **AI 会过时。我来现场纠。**
+> # **AI 答的是旧闻，Nowledge 带你了解最新。**
 > **AI answers from a frozen past. Nowledge answers from now.**
+
+![Nowledge — AI 答的是旧闻，Nowledge 带你了解最新](demo/frozen-vs-now.png)
 
 你问 AI 一个新东西，它张口就来——但它的记忆**冻结在训练截止那天**（比如 2026-01），早就过期了，还一脸自信。
 

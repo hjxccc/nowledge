@@ -22,4 +22,3 @@ scripts/_xcache/
 .DS_Store
 Thumbs.db
 .playwright-mcp/
-demo/frozen-vs-now.png

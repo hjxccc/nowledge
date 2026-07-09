@@ -1,0 +1,117 @@
+<!doctype html>
+<!-- nowledge 组件② · loop engineering 核心机制图解。过 mayer-checklist：一图一机制/标注就近/颜色编号信号/去冗余/先术语后图 -->
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loop 的解剖：五件套 + 外置记忆</title>
+<style>
+  :root{--bg:#0d1117;--panel:#161b22;--edge:#30363d;--ink:#e6edf3;--muted:#9aa4b2;
+        --a:#58a6ff;--b:#3fb950;--c:#d29922;--d:#f778ba;--e:#a371f7;--warn:#f85149}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:15px/1.6 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif;padding:32px}
+  .wrap{max-width:940px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 2px}
+  .sub{color:var(--muted);margin:0 0 20px}
+  .terms{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin:0 0 22px}
+  .term{background:var(--panel);border:1px solid var(--edge);border-radius:10px;padding:11px 13px;font-size:13px}
+  .term b{color:var(--a)}
+  figure{margin:0;background:var(--panel);border:1px solid var(--edge);border-radius:14px;padding:18px}
+  svg{width:100%;height:auto;display:block}
+  .lbl{fill:var(--ink);font-size:14px;font-weight:600}
+  .note{fill:var(--muted);font-size:11.5px}
+  .num{fill:#0d1117;font-size:13px;font-weight:700}
+  figcaption{color:var(--muted);font-size:13px;margin-top:14px;border-top:1px solid var(--edge);padding-top:12px}
+  .contrast{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:22px 0 0}
+  .card{background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:14px}
+  .card h3{margin:0 0 6px;font-size:14px}
+  .old h3{color:var(--warn)} .new h3{color:var(--b)}
+  .card p{margin:0;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Loop 的解剖：五件套 + 一个外置记忆</h1>
+  <p class="sub">loop-engineering-nowledge · 图解 · 来源 Addy Osmani / Steinberger 清单（sources/）</p>
+
+  <!-- 先术语后整体（pre-training） -->
+  <div class="terms">
+    <div class="term"><b>Harness</b> 单个 agent 运行的环境；loop 站在它上面一层</div>
+    <div class="term"><b>Loop</b> 递归目标：定义目的，AI 迭代到完成，你不再逐轮 prompt</div>
+    <div class="term"><b>外置记忆</b> 磁盘上的 md/看板，跨轮次存"已完成/下一步"</div>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 900 470" role="img" aria-label="loop 的五阶段循环与外置记忆">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0 0 L10 5 L0 10 z" fill="#58a6ff"/></marker>
+        <marker id="arm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0 0 L10 5 L0 10 z" fill="#9aa4b2"/></marker>
+      </defs>
+
+      <!-- 中心：外置记忆（loop 之外，所有阶段读写它） -->
+      <ellipse cx="450" cy="235" rx="92" ry="60" fill="#1f2630" stroke="#a371f7" stroke-width="2"/>
+      <text class="lbl" x="450" y="228" text-anchor="middle" fill="#a371f7">⑥ 外置记忆</text>
+      <text class="note" x="450" y="250" text-anchor="middle">磁盘 md / 看板</text>
+      <text class="note" x="450" y="267" text-anchor="middle">模型每轮会忘，状态必须落盘</text>
+
+      <!-- 五阶段环绕（读图顺序 1→5→回到1） -->
+      <!-- 1 发现 (top) -->
+      <g><rect x="360" y="20" width="180" height="66" rx="10" fill="#1f2630" stroke="#30363d"/>
+        <circle cx="380" cy="40" r="12" fill="#58a6ff"/><text class="num" x="376" y="44">1</text>
+        <text class="lbl" x="400" y="45">发现 / 分诊</text>
+        <text class="note" x="372" y="72">① 定时自动化：自己找活</text></g>
+      <!-- 2 派发 (right) -->
+      <g><rect x="700" y="150" width="180" height="66" rx="10" fill="#1f2630" stroke="#30363d"/>
+        <circle cx="720" cy="170" r="12" fill="#3fb950"/><text class="num" x="716" y="174">2</text>
+        <text class="lbl" x="740" y="175">派发干活</text>
+        <text class="note" x="712" y="202">② worktree：并行不打架</text></g>
+      <!-- 3 检查 (bottom right) -->
+      <g><rect x="620" y="380" width="200" height="66" rx="10" fill="#1f2630" stroke="#30363d"/>
+        <circle cx="640" cy="400" r="12" fill="#d29922"/><text class="num" x="636" y="404">3</text>
+        <text class="lbl" x="660" y="405">检查复核</text>
+        <text class="note" x="632" y="432">⑤ 子 agent：一个做一个查</text></g>
+      <!-- 4 记录 (bottom left) -->
+      <g><rect x="80" y="380" width="200" height="66" rx="10" fill="#1f2630" stroke="#30363d"/>
+        <circle cx="100" cy="400" r="12" fill="#f778ba"/><text class="num" x="96" y="404">4</text>
+        <text class="lbl" x="120" y="405">记录进度</text>
+        <text class="note" x="92" y="432">写回⑥记忆：已完成/待做</text></g>
+      <!-- 5 决定下一步 (left) -->
+      <g><rect x="20" y="150" width="180" height="66" rx="10" fill="#1f2630" stroke="#30363d"/>
+        <circle cx="40" cy="170" r="12" fill="#58a6ff"/><text class="num" x="36" y="174">5</text>
+        <text class="lbl" x="60" y="175">决定下一步</text>
+        <text class="note" x="32" y="202">读⑥记忆 → 回到 1</text></g>
+
+      <!-- 环形箭头（信号：阅读顺序 + "自我投喂"的闭环） -->
+      <path d="M540 55 Q700 70 760 148" fill="none" stroke="#58a6ff" stroke-width="2" marker-end="url(#ar)"/>
+      <path d="M770 218 Q800 320 730 378" fill="none" stroke="#58a6ff" stroke-width="2" marker-end="url(#ar)"/>
+      <path d="M618 415 L282 415" fill="none" stroke="#58a6ff" stroke-width="2" marker-end="url(#ar)"/>
+      <path d="M130 378 Q60 320 92 218" fill="none" stroke="#58a6ff" stroke-width="2" marker-end="url(#ar)"/>
+      <path d="M120 148 Q220 60 358 50" fill="none" stroke="#58a6ff" stroke-width="2" marker-end="url(#ar)"/>
+
+      <!-- 记忆读写虚线（每阶段都碰记忆） -->
+      <path d="M400 300 L200 380" stroke="#a371f7" stroke-width="1.3" stroke-dasharray="4 4" marker-end="url(#arm)" opacity=".8"/>
+      <path d="M500 300 L680 380" stroke="#a371f7" stroke-width="1.3" stroke-dasharray="4 4" marker-end="url(#arm)" opacity=".8"/>
+
+      <text class="note" x="450" y="120" text-anchor="middle" fill="#58a6ff">蓝环 = loop 自己转（你不在环里）；紫线 = 每步读写外置记忆</text>
+      <!-- ③skills ④插件 贯穿说明 -->
+      <text class="note" x="450" y="460" text-anchor="middle">贯穿全环：③ skills 写下项目知识、④ 插件/连接器接已有工具（给每个 agent 加能力）</text>
+    </svg>
+    <figcaption>
+      这张图最想让你记住的**关系**：loop engineering 的本质不是"更会 prompt"，而是把
+      <b>发现→派发→检查→记录→决定</b>这个你原来手动做的环，交给系统自转，你退到环外只设计它。
+      记忆之所以画在中心且在环外——因为模型每轮失忆，<b>状态必须落盘</b>，这是整个 loop 能连续跑的命根子。
+    </figcaption>
+  </figure>
+
+  <div class="contrast">
+    <div class="card old"><h3>旧：prompt engineering</h3>
+      <p>你握着工具，一轮一轮 prompt：打字→读结果→再打字。你始终在环里。</p></div>
+    <div class="card new"><h3>新：loop engineering</h3>
+      <p>你设计一个会自己找活、派活、自查、记账、定下一步的系统，让它去 poke agent。你退到环外。</p></div>
+  </div>
+</div>
+</body>
+</html>

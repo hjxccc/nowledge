@@ -1,0 +1,19 @@
+{
+  "seen": [
+    "//context7.com/modelcontextprotocol/modelcontextprotocol",
+    "//context7.com/websites/pub_dev_mcp_dart",
+    "//github.com/appcypher/awesome-mcp-servers",
+    "//github.com/executeautomation/mcp-playwright",
+    "//github.com/getsentry/xcodebuildmcp",
+    "//github.com/gonzalomonzonc/lumen-protocol",
+    "//github.com/hangwin/mcp-chrome",
+    "//github.com/jem-hr/pywa-mcp-server",
+    "//github.com/lastmile-ai/mcp-agent",
+    "//github.com/mark3labs/mcp-go",
+    "//github.com/microsoft/mcp-for-beginners",
+    "//github.com/mobile-next/mobile-mcp",
+    "//github.com/modelcontextprotocol/registry",
+    "//github.com/tadata-org/fastapi_mcp",
+    "//github.com/vaquarkhan/mcp-test-harness"
+  ]
+}

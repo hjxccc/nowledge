@@ -1,0 +1,96 @@
+<!doctype html>
+<!--
+  nowledge 深色 SVG 图解模板（组件②）
+  用前逐条过 references/mayer-checklist.md：
+    一图一机制 · 标注就近长在图元上 · 颜色/箭头/编号做信号 · 去装饰去冗余 · 先术语后整体
+  用法：复制本文件到 ./<主题>-nowledge/diagrams/<机制名>.html，替换所有 <...> 占位。
+-->
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><机制名> · 图解</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --edge:#30363d;
+    --ink:#e6edf3; --muted:#9aa4b2;
+    --a:#58a6ff; --b:#3fb950; --c:#d29922; --d:#f778ba; --warn:#f85149;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:15px/1.6 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+       -webkit-font-smoothing:antialiased;padding:32px}
+  .wrap{max-width:960px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 24px}
+  /* 预训练：先给术语速查，再上系统图（Mayer pre-training） */
+  .terms{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+         gap:10px;margin:0 0 24px}
+  .term{background:var(--panel);border:1px solid var(--edge);border-radius:10px;padding:12px 14px}
+  .term b{color:var(--a)}
+  .term span{color:var(--muted);display:block;font-size:13px;margin-top:2px}
+  figure{margin:0;background:var(--panel);border:1px solid var(--edge);border-radius:14px;padding:20px}
+  svg{width:100%;height:auto;display:block}
+  .node{fill:#1f2630;stroke:var(--edge);stroke-width:1.5}
+  .lbl{fill:var(--ink);font-size:14px;font-weight:600}
+  .note{fill:var(--muted);font-size:12px}         /* 就近标注，长在图元旁 */
+  .num{fill:#0d1117;font-size:13px;font-weight:700}
+  .flow{stroke:var(--a);stroke-width:2;fill:none;marker-end:url(#arrow)}
+  figcaption{color:var(--muted);font-size:13px;margin-top:14px;border-top:1px solid var(--edge);padding-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><机制名>：<一句话概括这张图在讲什么></h1>
+  <p class="sub"><主题>-nowledge · 图解 · 来源见 sources/</p>
+
+  <!-- ① 术语速查（先教名词再讲整体） -->
+  <div class="terms">
+    <div class="term"><b><术语1></b><span><一句话解释></span></div>
+    <div class="term"><b><术语2></b><span><一句话解释></span></div>
+    <div class="term"><b><术语3></b><span><一句话解释></span></div>
+  </div>
+
+  <!-- ② 系统图：编号引导视线，标注就近，颜色分层 -->
+  <figure>
+    <svg viewBox="0 0 900 420" role="img" aria-label="<机制名>示意图">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="#58a6ff"/>
+        </marker>
+      </defs>
+
+      <!-- 节点示例（替换成你的机制；每个节点带编号 + 就近 note） -->
+      <g>
+        <rect class="node" x="40"  y="60" width="200" height="90" rx="10"/>
+        <circle cx="60" cy="80" r="12" fill="#58a6ff"/><text class="num" x="56" y="84">1</text>
+        <text class="lbl" x="80"  y="100"><步骤/组件 1></text>
+        <text class="note" x="52" y="130"><就近标注：这一步在干嘛></text>
+      </g>
+      <g>
+        <rect class="node" x="350" y="60" width="200" height="90" rx="10"/>
+        <circle cx="370" cy="80" r="12" fill="#3fb950"/><text class="num" x="366" y="84">2</text>
+        <text class="lbl" x="392" y="100"><步骤/组件 2></text>
+        <text class="note" x="362" y="130"><就近标注></text>
+      </g>
+      <g>
+        <rect class="node" x="660" y="60" width="200" height="90" rx="10"/>
+        <circle cx="680" cy="80" r="12" fill="#d29922"/><text class="num" x="676" y="84">3</text>
+        <text class="lbl" x="702" y="100"><步骤/组件 3></text>
+        <text class="note" x="672" y="130"><就近标注></text>
+      </g>
+
+      <!-- 流向箭头（信号：引导阅读顺序） -->
+      <path class="flow" d="M240 105 L350 105"/>
+      <path class="flow" d="M550 105 L660 105"/>
+
+      <!-- 可加：分层/循环/分支，用不同颜色区分不同关系 -->
+      <text class="note" x="40" y="200"><下方可继续画第二层：状态/记忆/回路等></text>
+    </svg>
+    <figcaption>
+      读图顺序：① → ② → ③。<用一句话点出这张图最想让你记住的那个"关系"，而不是复述节点>。
+    </figcaption>
+  </figure>
+</div>
+</body>
+</html>

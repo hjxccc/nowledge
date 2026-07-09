@@ -1,0 +1,25 @@
+# 私有素材 / 非分发内容（绝不发布）
+blog/
+research/
+BLOG-OUTLINE.md
+*.log
+err.log
+rust_err.log
+hot-card.png
+*.png.bak
+
+# 运行时产物
+__pycache__/
+*.pyc
+scripts/lib/sources/.xcache/
+scripts/_xtmp/
+scripts/_probe/
+scripts/_xcache/
+/*-nowledge/
+/*-track/
+
+# 系统
+.DS_Store
+Thumbs.db
+.playwright-mcp/
+demo/frozen-vs-now.png

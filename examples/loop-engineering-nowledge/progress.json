@@ -1,0 +1,54 @@
+{
+  "topic": "loop engineering",
+  "created": "2026-07-06",
+  "items": [
+    {
+      "id": 1,
+      "q": "loop engineering 和自己写 prompt 让 AI 干活，根本区别是什么？",
+      "answer_ref": "checkpoints/01-loop-basics.md#1",
+      "level": 1,
+      "due": "2026-07-10",
+      "reps": 1,
+      "lapses": 0,
+      "note": "",
+      "history": [
+        {
+          "date": "2026-07-07",
+          "result": "pass"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "q": "loop 连续跑一夜、模型每轮会忘，它靠什么记得做到哪？拿掉会怎样？",
+      "answer_ref": "checkpoints/01-loop-basics.md#2",
+      "level": 1,
+      "due": "2026-07-10",
+      "reps": 1,
+      "lapses": 0,
+      "note": "",
+      "history": [
+        {
+          "date": "2026-07-07",
+          "result": "pass"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "q": "五件套里的 worktree，为什么并行跑多个 agent 一定需要它？",
+      "answer_ref": "checkpoints/01-loop-basics.md#3",
+      "level": 1,
+      "due": "2026-07-10",
+      "reps": 1,
+      "lapses": 0,
+      "note": "",
+      "history": [
+        {
+          "date": "2026-07-07",
+          "result": "pass"
+        }
+      ]
+    }
+  ]
+}

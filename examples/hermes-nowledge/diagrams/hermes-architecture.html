@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hermes Agent 框架原理图解</title>
+<style>
+  :root{--bg:#0b0e14;--panel:#141a24;--line:#2a3446;--ink:#e6edf3;--dim:#8b98a9;
+        --loop:#f0b429;--mem:#4fd1c5;--skill:#a78bfa;--ctx:#f97583;--io:#5aa9ff}
+  *{box-sizing:border-box;margin:0}
+  body{background:var(--bg);color:var(--ink);font:14px/1.55 -apple-system,"Segoe UI",
+       "Microsoft YaHei",Roboto,sans-serif;padding:28px;display:flex;justify-content:center}
+  .wrap{width:900px;max-width:100%}
+  h1{font-size:21px;font-weight:700}
+  h1 .k{color:var(--loop)}
+  .lead{color:var(--dim);font-size:13px;margin:6px 0 18px;border-bottom:1px solid var(--line);
+        padding-bottom:14px}
+  .lead b{color:var(--mem)}
+  svg{width:100%;height:auto;background:#0d1119;border:1px solid var(--line);border-radius:12px}
+  .cap{color:var(--dim);font-size:12.5px;margin:12px 2px 20px;line-height:1.7}
+  .cap b{color:var(--ink)}
+  .terms{display:grid;grid-template-columns:1fr 1fr;gap:8px 22px}
+  .terms h2{grid-column:1/3;font-size:14px;color:var(--loop);margin-bottom:2px}
+  .t{font-size:12.5px;color:var(--dim)}
+  .t b{color:var(--ink)}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;
+      vertical-align:middle}
+</style></head>
+<body><div class="wrap">
+  <h1><span class="k">Hermes Agent</span> · 框架原理</h1>
+  <div class="lead">核心 = 一个 <b>run_conversation()</b> 循环：调模型 → 有工具调用就执行再回炉 → 纯文本才收工；
+    外挂<b>持久记忆</b>与<b>技能系统</b>，靠<b>上下文压缩</b>撑住长跑。
+    （据官方 <code>agent/conversation_loop.py</code> · <code>agent-loop.md</code>，非训练记忆）</div>
+
+  <svg viewBox="0 0 900 470" role="img" aria-label="Hermes 架构图">
+    <defs>
+      <marker id="a" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+        <path d="M0,0 L7,3 L0,6 Z" fill="#8b98a9"/></marker>
+      <marker id="ay" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+        <path d="M0,0 L7,3 L0,6 Z" fill="#f0b429"/></marker>
+    </defs>
+
+    <!-- 中央循环 -->
+    <rect x="250" y="40" width="400" height="300" rx="14" fill="#10151f" stroke="#f0b429" stroke-width="1.5"/>
+    <text x="450" y="66" text-anchor="middle" fill="#f0b429" font-size="14" font-weight="700">Agent 心跳循环 · run_conversation()</text>
+    <text x="450" y="84" text-anchor="middle" fill="#8b98a9" font-size="11">while 未超 max_iterations 且 budget 有余</text>
+
+    <rect x="300" y="100" width="300" height="34" rx="8" fill="#1b2333" stroke="#2a3446"/>
+    <text x="450" y="122" text-anchor="middle" fill="#e6edf3" font-size="12.5">① 组 system prompt + 历史 → 调模型 API</text>
+
+    <rect x="300" y="150" width="300" height="34" rx="8" fill="#1b2333" stroke="#2a3446"/>
+    <text x="450" y="172" text-anchor="middle" fill="#e6edf3" font-size="12.5">② 解析回复：是 tool_calls 还是纯文本？</text>
+
+    <!-- 分支 -->
+    <rect x="270" y="205" width="170" height="46" rx="8" fill="#231a1c" stroke="#f97583"/>
+    <text x="355" y="224" text-anchor="middle" fill="#f97583" font-size="12" font-weight="600">tool_calls →</text>
+    <text x="355" y="240" text-anchor="middle" fill="#c7d0dc" font-size="11">执行工具·append 结果</text>
+
+    <rect x="460" y="205" width="170" height="46" rx="8" fill="#12211f" stroke="#4fd1c5"/>
+    <text x="545" y="224" text-anchor="middle" fill="#4fd1c5" font-size="12" font-weight="600">纯文本 →</text>
+    <text x="545" y="240" text-anchor="middle" fill="#c7d0dc" font-size="11">落盘·flush 记忆·返回</text>
+
+    <!-- 回炉箭头 -->
+    <path d="M300,228 C250,228 250,117 300,117" fill="none" stroke="#f0b429" stroke-width="1.6" marker-end="url(#ay)"/>
+    <text x="243" y="175" text-anchor="middle" fill="#f0b429" font-size="10.5" transform="rotate(-90 243,175)">回炉再调</text>
+
+    <line x1="450" y1="134" x2="450" y2="148" stroke="#8b98a9" marker-end="url(#a)"/>
+    <line x1="355" y1="184" x2="355" y2="203" stroke="#8b98a9" marker-end="url(#a)"/>
+    <line x1="545" y1="184" x2="545" y2="203" stroke="#8b98a9" marker-end="url(#a)"/>
+
+    <!-- 循环内的护栏条 -->
+    <rect x="300" y="285" width="300" height="40" rx="8" fill="#141a24" stroke="#f97583" stroke-dasharray="4 3"/>
+    <text x="450" y="302" text-anchor="middle" fill="#f97583" font-size="11.5" font-weight="600">上下文压力阀（每轮）</text>
+    <text x="450" y="317" text-anchor="middle" fill="#c7d0dc" font-size="10.5">&gt;50% 上下文→preflight 压缩 · 注入 budget/pressure 提醒 · 可被打断</text>
+
+    <!-- 左：持久记忆 -->
+    <rect x="24" y="120" width="196" height="90" rx="12" fill="#0f1a19" stroke="#4fd1c5"/>
+    <text x="122" y="144" text-anchor="middle" fill="#4fd1c5" font-size="13" font-weight="700">持久记忆 memory</text>
+    <text x="122" y="165" text-anchor="middle" fill="#c7d0dc" font-size="11">memory("add", …) 落磁盘</text>
+    <text x="122" y="182" text-anchor="middle" fill="#c7d0dc" font-size="11">跨会话不忘 · 有字符上限</text>
+    <text x="122" y="199" text-anchor="middle" fill="#8b98a9" font-size="10.5">= 精炼笔记，非全量日志</text>
+    <path d="M220,175 C245,175 250,238 270,232" fill="none" stroke="#4fd1c5" stroke-width="1.4" marker-end="url(#a)"/>
+
+    <!-- 左下：多provider -->
+    <rect x="24" y="230" width="196" height="72" rx="12" fill="#0f1620" stroke="#5aa9ff"/>
+    <text x="122" y="253" text-anchor="middle" fill="#5aa9ff" font-size="12.5" font-weight="700">多 Provider 适配</text>
+    <text x="122" y="273" text-anchor="middle" fill="#c7d0dc" font-size="10.5">OpenAI · Codex · Anthropic</text>
+    <text x="122" y="289" text-anchor="middle" fill="#8b98a9" font-size="10.5">同一循环换后端不改逻辑</text>
+    <path d="M220,270 C250,270 270,150 300,124" fill="none" stroke="#5aa9ff" stroke-width="1.2" marker-end="url(#a)" opacity=".8"/>
+
+    <!-- 右：技能系统 -->
+    <rect x="680" y="120" width="196" height="90" rx="12" fill="#171429" stroke="#a78bfa"/>
+    <text x="778" y="144" text-anchor="middle" fill="#a78bfa" font-size="13" font-weight="700">技能系统 Skills</text>
+    <text x="778" y="165" text-anchor="middle" fill="#c7d0dc" font-size="11">把动作序列沉淀成</text>
+    <text x="778" y="182" text-anchor="middle" fill="#c7d0dc" font-size="11">可复用 procedural memory</text>
+    <text x="778" y="199" text-anchor="middle" fill="#8b98a9" font-size="10.5">= agent 自己造 skill</text>
+    <path d="M680,175 C655,175 650,232 630,230" fill="none" stroke="#a78bfa" stroke-width="1.4" marker-end="url(#a)"/>
+
+    <!-- 右下：自我进化 -->
+    <rect x="680" y="230" width="196" height="72" rx="12" fill="#1a1330" stroke="#a78bfa" stroke-dasharray="4 3"/>
+    <text x="778" y="253" text-anchor="middle" fill="#a78bfa" font-size="12.5" font-weight="700">自我进化 Self-Evolution</text>
+    <text x="778" y="273" text-anchor="middle" fill="#c7d0dc" font-size="10.5">自动优化 skills / 工具描述</text>
+    <text x="778" y="289" text-anchor="middle" fill="#8b98a9" font-size="10.5">在技能之上再套一层进化</text>
+    <path d="M778,230 L778,212" stroke="#a78bfa" stroke-width="1.2" marker-end="url(#a)"/>
+
+    <!-- 入口/出口 -->
+    <text x="450" y="365" text-anchor="middle" fill="#8b98a9" font-size="11">用户消息 ↑ 入循环　·　纯文本回复 ↓ 出循环并落盘</text>
+
+    <!-- 图注序号带 -->
+    <text x="30" y="405" fill="#8b98a9" font-size="11">读图顺序：中央循环 ①②→分支（🔴回炉 / 🟢收工）→ 两侧四个外挂子系统</text>
+  </svg>
+
+  <div class="cap"><b>一句话看图</b>：中间黄框是<b>心跳</b>——模型每轮要么"调工具再回炉"（红，agent 干活），要么"出纯文本收工"（青）。
+    左边青色 = <b>它凭什么跨会话不忘</b>（外置记忆）；右边紫色 = <b>它凭什么越用越强</b>（技能→自我进化）；
+    循环底部红色虚线 = <b>它凭什么能长跑不爆</b>（上下文压力阀）。三样都去掉，就退化成一个普通一次性问答。</div>
+
+  <div class="terms">
+    <h2>术语速查</h2>
+    <div class="t"><span class="sw" style="background:#f0b429"></span><b>agent loop</b>：调模型→执行工具→回炉的循环，agent 的心跳</div>
+    <div class="t"><span class="sw" style="background:#f97583"></span><b>tool_calls</b>：模型要求执行的工具调用；有它就继续循环</div>
+    <div class="t"><span class="sw" style="background:#4fd1c5"></span><b>持久记忆</b>：落磁盘、跨会话的精炼笔记（有上限）</div>
+    <div class="t"><span class="sw" style="background:#a78bfa"></span><b>procedural memory</b>：把动作序列固化成可复用技能</div>
+    <div class="t"><span class="sw" style="background:#f97583"></span><b>preflight 压缩</b>：上下文超 50% 时先压缩再继续</div>
+    <div class="t"><span class="sw" style="background:#5aa9ff"></span><b>provider 适配</b>：同循环兼容 OpenAI/Codex/Anthropic</div>
+  </div>
+</div></body></html>

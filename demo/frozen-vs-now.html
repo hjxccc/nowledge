@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>Nowledge · AI 会过时，我来现场纠</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0a0e14; display:flex; align-items:center; justify-content:center; min-height:100vh;
+         font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; }
+  .frame { width:1280px; height:720px; background:radial-gradient(120% 120% at 50% -20%,#141b28 0%,#0a0e14 60%);
+           padding:48px 56px; display:flex; flex-direction:column; color:#e6edf3; position:relative; }
+  .top { text-align:center; margin-bottom:26px; }
+  .claim { font-size:44px; font-weight:800; letter-spacing:1px; }
+  .claim .hl { color:#ff5f56; }
+  .sub { font-size:16px; color:#8b98a9; margin-top:8px; letter-spacing:2px; }
+  .q { text-align:center; font-size:19px; margin-bottom:22px; color:#c9d4e0; }
+  .q b { color:#6cb6ff; background:#152238; padding:4px 14px; border-radius:8px; }
+  .cols { flex:1; display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+  .panel { border-radius:16px; padding:24px 26px; display:flex; flex-direction:column; }
+  .frozen { background:#11151c; border:1px solid #232a35; }
+  .now { background:linear-gradient(180deg,#0f1a17 0%,#0c1512 100%); border:1px solid #1f5c46; }
+  .tag { font-size:15px; font-weight:700; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+  .frozen .tag { color:#7d8794; }
+  .now .tag { color:#3fd39a; }
+  .tag .date { font-size:12px; font-weight:500; margin-left:auto; padding:3px 9px; border-radius:6px; }
+  .frozen .date { background:#1b212b; color:#5b6674; }
+  .now .date { background:#123528; color:#4fe0a8; }
+  .body { font-size:16px; line-height:1.85; color:#aeb9c7; }
+  .frozen .body { color:#6b7580; font-style:italic; }
+  .now .body { color:#d6e2ee; }
+  .now .body li { margin-bottom:7px; list-style:none; }
+  .now .body li::before { content:"▸ "; color:#3fd39a; }
+  .red { color:#ff6b63; font-weight:700; background:rgba(255,95,86,.12);
+         padding:1px 6px; border-radius:5px; border-bottom:2px solid #ff5f56; }
+  .correct { color:#4fe0a8; font-weight:700; }
+  .ghost { opacity:.55; }
+  .foot { margin-top:24px; display:flex; align-items:center; justify-content:space-between; }
+  .slogan { font-size:17px; font-weight:700; }
+  .slogan .g { color:#3fd39a; }
+  .install { font-family:"SF Mono",Consolas,monospace; font-size:13px; color:#8b98a9;
+             background:#11161f; padding:9px 15px; border-radius:8px; border:1px solid #232a35; }
+  .install b { color:#6cb6ff; }
+</style>
+</head>
+<body>
+  <div class="frame">
+    <div class="top">
+      <div class="claim">AI 会过时。<span class="hl">我来现场纠。</span></div>
+      <div class="sub">AI ANSWERS FROM A FROZEN PAST · NOWLEDGE ANSWERS FROM NOW</div>
+    </div>
+    <div class="q">你问：<b>介绍下 Claude Fable 5</b></div>
+    <div class="cols">
+      <div class="panel frozen">
+        <div class="tag">🧊 裸 AI（凭训练记忆）<span class="date">记忆截止 2026-01</span></div>
+        <div class="body">
+          “抱歉，我的训练数据里<span class="ghost">没有名为 Claude Fable 5 的模型</span>。
+          你也许是指 Claude 3.5 / Opus 系列？或者这是个尚未发布的传闻……”
+          <br><br><span class="ghost">（它不是不努力——这个模型发布在它记忆之后，它<b>无从知道</b>，却答得一脸笃定。）</span>
+        </div>
+      </div>
+      <div class="panel now">
+        <div class="tag">⚡ + Nowledge（现查）<span class="date">as-of 2026-07-08</span></div>
+        <div class="body">
+          <ul>
+            <li><span class="correct">Mythos-class 新模型</span>，2026-06-09 发布，能力在 Opus 之上</li>
+            <li>SWE-bench Verified <span class="correct">95%</span>，1M 上下文，$10/$50 定价</li>
+            <li>长周期自主执行是定义性强项（多天任务 / 自我校验）</li>
+            <li>🔴 <span class="red">AI 旧记忆会说"没这模型"——错</span>：现查它已发布，
+                还一度被出口管制下架、于 07-01 恢复</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="foot">
+      <div class="slogan">读一遍点头 = 忘。<span class="g">Nowledge 让料真进脑子。</span></div>
+      <div class="install">github.com/<b>hjxccc/nowledge</b></div>
+    </div>
+  </div>
+</body>
+</html>

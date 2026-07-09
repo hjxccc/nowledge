@@ -1,0 +1,76 @@
+{
+  "topic": "",
+  "items": [
+    {
+      "id": 1,
+      "q": "深度学习为什么这几年才起飞？三个关键因素是什么",
+      "answer_ref": "lesson1-week1.md 1.4",
+      "level": 0,
+      "due": "2026-07-09",
+      "reps": 0,
+      "lapses": 0,
+      "note": "数据规模×算力×算法",
+      "history": []
+    },
+    {
+      "id": 2,
+      "q": "逻辑回归的代价函数为什么用交叉熵、不用平方误差",
+      "answer_ref": "lesson1-week2.md 2.3",
+      "level": 0,
+      "due": "2026-07-09",
+      "reps": 0,
+      "lapses": 1,
+      "note": "配sigmoid平方误差非凸,交叉熵凸",
+      "history": [
+        {
+          "date": "2026-07-08",
+          "result": "fail"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "q": "计算图求导的核心思想是什么（和反向传播什么关系）",
+      "answer_ref": "lesson1-week2.md 2.7-2.8",
+      "level": 0,
+      "due": "2026-07-09",
+      "reps": 0,
+      "lapses": 0,
+      "note": "链式法则从右往左传梯度",
+      "history": []
+    },
+    {
+      "id": 4,
+      "q": "向量化相比for循环快在哪，numpy广播要注意什么坑",
+      "answer_ref": "lesson1-week2.md 2.11-2.15",
+      "level": 0,
+      "due": "2026-07-09",
+      "reps": 0,
+      "lapses": 0,
+      "note": "矩阵并行;广播会不报错算错,显式reshape",
+      "history": []
+    },
+    {
+      "id": 5,
+      "q": "loss 和 cost 的区别",
+      "answer_ref": "lesson1-week2.md 2.3",
+      "level": 0,
+      "due": "2026-07-09",
+      "reps": 0,
+      "lapses": 0,
+      "note": "loss单样本,cost全体平均",
+      "history": []
+    },
+    {
+      "id": 6,
+      "q": "学习率α是什么？设太大/太小分别会怎样",
+      "answer_ref": "lesson1-week2.md 2.4",
+      "level": 0,
+      "due": "2026-07-09",
+      "reps": 0,
+      "lapses": 1,
+      "note": "α=步子大小;太大发散NaN,太小收敛慢",
+      "history": []
+    }
+  ]
+}

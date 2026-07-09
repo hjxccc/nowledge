@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<!--
+  nowledge 交互图模板 · "调一个量看结果变" 型概念专用
+  ============================================================
+  何时用这个（而非 diagram-dark.html 静态 SVG）：
+    概念的核心是"改一个参数 → 看结果怎么变"——超参数影响、收敛/发散、
+    注意力权重、概率分布、算法单步执行……主动操纵 > 被动看图（学习科学）。
+  换主题只改 4 处（下方都用 ★CUSTOMIZE 标注）：
+    ★1 model()      —— 概念的数学/逻辑：给定状态+参数 → 下一个状态
+    ★2 classify()   —— 把当前参数翻译成一句"结论/判定"（配颜色）
+    ★3 draw()       —— 怎么把状态画到 canvas（曲线/点/条形/网格…）
+    ★4 控件 + 文案  —— 滑块范围、标签、图例、贴士
+  过一遍 references/mayer-checklist.md 再交付（信号-背景对比、就近标注、去冗余）。
+  内置示例=梯度下降学习率 playground，可直接当参考删改。
+-->
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>{{TITLE}} · 交互图</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0a0e14; color:#e6edf3; min-height:100vh; display:flex; flex-direction:column;
+         align-items:center; font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; padding:28px; }
+  h1 { font-size:22px; font-weight:800; margin-bottom:4px; }
+  h1 .g { color:#3fd39a; }
+  .sub { color:#8b98a9; font-size:14px; margin-bottom:20px; text-align:center; }
+  .stage { position:relative; }
+  canvas { background:linear-gradient(180deg,#0f1520,#0b0f16); border:1px solid #1e2733; border-radius:14px; }
+  .verdict { position:absolute; top:16px; left:0; right:0; text-align:center; font-size:19px; font-weight:800;
+             pointer-events:none; transition:color .2s; }
+  .panel { margin-top:20px; width:720px; background:#11161f; border:1px solid #1e2733; border-radius:12px; padding:18px 22px; }
+  .row { display:flex; align-items:center; gap:16px; margin-bottom:14px; }
+  .row label { width:150px; font-size:14px; color:#c9d4e0; }
+  input[type=range] { flex:1; accent-color:#3fd39a; height:6px; }
+  .val { width:120px; font-family:Consolas,monospace; font-size:15px; color:#6cb6ff; text-align:right; }
+  .btns { display:flex; gap:10px; }
+  button { background:#17324a; color:#cfe3ff; border:1px solid #2a577d; border-radius:8px;
+           padding:9px 18px; font-size:14px; cursor:pointer; font-weight:600; }
+  button:hover { background:#1d436b; }
+  button.primary { background:#155e45; border-color:#2b8a67; color:#c9ffe8; }
+  .legend { margin-top:14px; font-size:13px; color:#8b98a9; line-height:1.8; }
+  .legend b.c { color:#3fd39a; } .legend b.o { color:#ffcf5c; } .legend b.r { color:#ff6b63; }
+  .tip { margin-top:10px; font-size:13px; color:#7d8794; }
+  .tip .k { color:#6cb6ff; font-family:Consolas,monospace; }
+</style>
+</head>
+<body>
+  <h1>{{TITLE}} · <span class="g">交互 playground</span></h1>
+  <div class="sub">{{ONE_LINE_HOW_TO_READ}}</div>
+
+  <div class="stage">
+    <canvas id="cv" width="720" height="380"></canvas>
+    <div class="verdict" id="verdict"></div>
+  </div>
+
+  <div class="panel">
+    <!-- ★4 控件：每个可调参数一行滑块 -->
+    <div class="row">
+      <label>{{PARAM_LABEL}}</label>
+      <input type="range" id="p1" min="0.01" max="1.2" step="0.01" value="0.1">
+      <div class="val" id="p1Val">0.10</div>
+    </div>
+    <div class="row">
+      <label>迭代次数</label>
+      <input type="range" id="steps" min="1" max="40" step="1" value="12">
+      <div class="val" id="stepsVal">12 步</div>
+    </div>
+    <div class="btns">
+      <button class="primary" id="run">▶ 跑一次</button>
+      <button id="step">下一步 →</button>
+      <button id="reset">↺ 重置</button>
+    </div>
+    <!-- ★4 图例：把参数各区间的行为讲清 -->
+    <div class="legend">{{LEGEND_HTML}}</div>
+    <div class="tip">💡 {{TRY_THIS_HINT}}</div>
+  </div>
+
+<script>
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;
+
+// ===== ★1 model：概念的核心逻辑 —— 给定初值+参数，算出整条状态序列 =====
+// 示例：损失 J(w)=w²，梯度下降 w := w − α·2w = w·(1−2α)
+const cx = W/2, baseY = H-40, scaleX = 150, scaleY = 34;
+const J = w => w*w;
+const w0 = 2.0;
+function model(alpha, n){
+  const t = [w0]; let w = w0;
+  for(let i=0;i<n;i++){ w = w*(1-2*alpha); if(Math.abs(w)>3.2){ t.push(w>0?3.2:-3.2); break; } t.push(w); }
+  return t;
+}
+
+// ===== ★2 classify：当前参数 → 一句判定 + 颜色 =====
+function classify(alpha){
+  if(alpha>=1) return {t:'发散 · 越弹越远 → NaN', c:'#ff6b63'};
+  if(alpha>0.5) return {t:'震荡收敛', c:'#ffcf5c'};
+  if(Math.abs(0.5-alpha)<0.02) return {t:'临界 · 一步附近', c:'#ffcf5c'};
+  return {t:'平稳收敛 ✓', c:'#3fd39a'};
+}
+
+// ===== ★3 draw：把状态序列画到 canvas（画到第 upto 步）=====
+function toPx(w){ return { x: cx + w*scaleX, y: baseY - J(w)*scaleY }; }
+function drawBackdrop(){
+  ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle='#1a2230'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(0,baseY); ctx.lineTo(W,baseY); ctx.stroke();
+  ctx.strokeStyle='#2f6df0'; ctx.lineWidth=3; ctx.beginPath();
+  for(let px=0;px<=W;px+=2){ const w=(px-cx)/scaleX; const p=toPx(w); px?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y); }
+  ctx.stroke();
+  const b=toPx(0); ctx.fillStyle='#3fd39a'; ctx.beginPath(); ctx.arc(b.x,b.y,4,0,7); ctx.fill();
+  ctx.fillStyle='#5b6674'; ctx.font='12px sans-serif'; ctx.fillText('最优 w=0',b.x-26,b.y+20);
+}
+function render(upto){
+  drawBackdrop();
+  const alpha=parseFloat(p1.value), v=classify(alpha);
+  verdict.textContent=v.t; verdict.style.color=v.c;
+  ctx.strokeStyle=v.c; ctx.lineWidth=2; ctx.globalAlpha=.55; ctx.beginPath();
+  for(let i=0;i<=upto && i<traj.length;i++){ const p=toPx(traj[i]); i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y); }
+  ctx.stroke(); ctx.globalAlpha=1;
+  for(let i=0;i<=upto && i<traj.length;i++){ const p=toPx(traj[i]);
+    ctx.fillStyle=(i===upto)?v.c:'#8b98a9'; ctx.beginPath(); ctx.arc(p.x,p.y,(i===upto)?7:3,0,7); ctx.fill(); }
+  if(upto<traj.length){ const p=toPx(traj[upto]); ctx.fillStyle='#e6edf3'; ctx.font='13px Consolas';
+    ctx.fillText('w='+traj[upto].toFixed(2), p.x+10, p.y-8); }
+}
+
+// ===== 驱动（一般不用改）=====
+const p1=document.getElementById('p1'), steps=document.getElementById('steps');
+let traj=[], idx=0, raf=null;
+function rebuild(){ traj=model(parseFloat(p1.value),parseInt(steps.value)); idx=0; render(0); }
+p1.oninput=()=>{ p1Val.textContent=parseFloat(p1.value).toFixed(2); rebuild(); };
+steps.oninput=()=>{ stepsVal.textContent=steps.value+' 步'; rebuild(); };
+document.getElementById('step').onclick=()=>{ if(idx<traj.length-1){idx++; render(idx);} };
+document.getElementById('reset').onclick=()=>{ if(raf)cancelAnimationFrame(raf); rebuild(); };
+document.getElementById('run').onclick=()=>{
+  if(raf)cancelAnimationFrame(raf); rebuild(); idx=0; let last=0;
+  (function anim(ts){ if(ts-last>320){ idx++; render(idx); last=ts; }
+    if(idx<traj.length-1) raf=requestAnimationFrame(anim); })(0);
+};
+rebuild();
+</script>
+</body>
+</html>

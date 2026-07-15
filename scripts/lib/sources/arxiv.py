@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 from lib.common import ROLE_PRINCIPLE, Candidate, http_get
 
 WEIGHT = 1.0
-API = "http://export.arxiv.org/api/query"
+API = "https://export.arxiv.org/api/query"
 NS = {"a": "http://www.w3.org/2005/Atom"}
 
 

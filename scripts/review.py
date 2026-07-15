@@ -85,8 +85,8 @@ def cmd_grade(args) -> None:
     data = load(args.file)
     it = next((x for x in data["items"] if x["id"] == args.id), None)
     if not it:
-        print(f"[err] 找不到 #{args.id}")
-        return
+        print(f"[err] 找不到 #{args.id}", file=sys.stderr)
+        raise SystemExit(1)
     t = today(args)
     passed = bool(args.passed) and not args.failed
     if passed:
@@ -130,6 +130,14 @@ def main() -> None:
     ap.add_argument("--fail", dest="failed", action="store_true")
     ap.add_argument("--today", default="", help="覆盖当天(YYYY-MM-DD)，测试/复现用")
     args = ap.parse_args()
+    if args.cmd == "add" and not args.q.strip():
+        ap.error("add requires a non-empty --q")
+    if args.cmd == "grade":
+        if args.id <= 0:
+            ap.error("grade requires a positive --id")
+        if args.passed == args.failed:
+            ap.error("grade requires exactly one of --pass or --fail")
+    args.q = args.q.strip()
     {"add": cmd_add, "due": cmd_due, "grade": cmd_grade, "stats": cmd_stats}[args.cmd](args)
 
 

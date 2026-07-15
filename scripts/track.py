@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import json
 import os
 import sys
@@ -71,7 +72,7 @@ def main() -> None:
         with open(state_path, "w", encoding="utf-8") as f:
             json.dump(state, f, ensure_ascii=False, indent=2)
         if fresh:
-            date = args.date or "(未标日期)"
+            date = args.date or dt.date.today().isoformat()
             lines = [f"\n## {date} · 新增 {len(fresh)} 条\n"]
             for it in fresh:
                 lines.append(f"- **[{it['source']}/{it['role']}]** [{it['title']}]({it['url']})")

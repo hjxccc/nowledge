@@ -29,19 +29,26 @@ _TOOLING = re.compile(
 _AI = re.compile(
     r"\b(ai|llm|agent|rag|gpt|claude|prompt|model|langchain|langgraph|"
     r"大模型|智能体|生成式)\b", re.I)
+_RESEARCH_ZH = re.compile(
+    r"论文|理论|定理|算法|证明|神经网络|注意力|扩散|架构|基准|数据集|嵌入|"
+    r"梯度|推理|解码|采样|量化|蒸馏|微调|强化学习|混合专家|预训练|分词")
+_TOOLING_ZH = re.compile(r"工程|框架|工具|智能体|代理|工作流|部署|教程|实战|上手|开发|最佳实践")
+_AI_ZH = re.compile(r"人工智能|大模型|语言模型|生成式|智能体|模型|检索增强")
 _CJK = re.compile(r"[一-鿿]")
 
 
 def classify(topic: str) -> str:
     t = topic.lower()
-    ai = bool(_AI.search(t))
-    if ai and _RESEARCH.search(t) and not _TOOLING.search(t):
+    ai = bool(_AI.search(t) or _AI_ZH.search(t))
+    research = bool(_RESEARCH.search(t) or _RESEARCH_ZH.search(t))
+    tooling = bool(_TOOLING.search(t) or _TOOLING_ZH.search(t))
+    if ai and research and not tooling:
         return "ai-research"
     if ai:
         return "ai-tooling"        # AI 但偏实践/工具 → 不带 arXiv
-    if _RESEARCH.search(t):
+    if research:
         return "ai-research"
-    if _TOOLING.search(t) or re.search(r"[a-z]", t):
+    if tooling or re.search(r"[a-z]", t):
         return "software"
     return "non-tech"
 
@@ -55,7 +62,12 @@ def plan(topic: str, *, domain: str = "", lang: str = "",
     is_zh = lang == "zh" or (lang != "en" and bool(_CJK.search(topic)))
     if is_zh:
         pool = [s for s in srcs if s != "reddit"] + ["juejin", "wechat", "zhihu"]
-        order = ["github", "juejin", "wechat", "hackernews", "zhihu", "arxiv"]
+        if dom == "ai-research":
+            order = ["arxiv", "github", "x", "hackernews", "juejin", "wechat", "zhihu"]
+        elif dom == "ai-tooling":
+            order = ["github", "x", "juejin", "hackernews", "wechat", "zhihu"]
+        else:
+            order = ["github", "x", "juejin", "wechat", "hackernews", "zhihu", "arxiv"]
         srcs = [s for s in order if s in pool] + [s for s in pool if s not in order]
     else:
         srcs = [s for s in srcs if s not in ("juejin", "wechat", "zhihu")]

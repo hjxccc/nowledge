@@ -132,7 +132,7 @@ def check_sources(d: str) -> list[tuple]:
         return [(False, "sources/ 缺失（第 0 件接地）")]
     t = "\n".join(_read(f) for f in files if f.endswith((".md", ".json")))
     return [
-        (bool(re.search(r"不是答案|原料|社区在说", t)) or True, "料清单标注'原料非结论'（护栏）"),
+        (bool(re.search(r"不是答案|原料|社区在说", t)), "料清单标注'原料非结论'（护栏）"),
         (bool(re.search(r"原理|实操|踩坑|role", t)), "角色三角标签"),
         (None, "来源是否真一手 / 权威度判断"),
     ]

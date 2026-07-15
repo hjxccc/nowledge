@@ -51,13 +51,21 @@ def mmr_pick(group: list, k: int = 2, lam: float = 0.7) -> list:
     """每簇选 k 个代表：λ·质量 − (1−λ)·与已选最大相似度。"""
     if len(group) <= k:
         return list(group)
+    scores = [c.final_score for c in group]
+    low, high = min(scores), max(scores)
+
+    def quality(c) -> float:
+        # RRF 通常只有 0.01 左右，而相似度位于 [0, 1]。先统一量纲，
+        # 避免多样性惩罚压倒质量，误选几乎不相关的低质量结果。
+        return (c.final_score - low) / (high - low) if high > low else 1.0
+
     chosen: list = [group[0]]
     rest = group[1:]
     while rest and len(chosen) < k:
         best, best_s = None, -1e9
         for c in rest:
             div = max(_overlap(c.entities, s.entities) for s in chosen)
-            s = lam * c.final_score - (1 - lam) * div * 100
+            s = lam * quality(c) - (1 - lam) * div
             if s > best_s:
                 best, best_s = c, s
         chosen.append(best)

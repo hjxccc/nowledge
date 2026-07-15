@@ -5,7 +5,7 @@
 
 ![Nowledge — AI 答的是旧闻，Nowledge 带你了解最新](demo/frozen-vs-now.png)
 
-你问 AI 一个新东西，它张口就来——但它的记忆**冻结在训练截止那天**（比如 2026-01），早就过期了，还一脸自信。
+你问 AI 一个新东西，它可能依赖训练时已有的信息；面对刚发布的版本、工具和争议，这些信息很容易过期。
 
 **Nowledge 干一件事：现查现答，然后标红「AI 旧记忆在这会答错」。**
 
@@ -16,7 +16,7 @@
                🔴 注意：AI 旧记忆会说"没这模型"——错，现查它已发布并一度被出口管制下架又恢复。
 ```
 
-装进 Claude Code（或任何支持 Skill 的 agent）。**零 API Key，纯 Python 标准库。**
+装进 Claude Code、Codex 或支持同类 `SKILL.md` 约定的 agent。核心脚本**零必需 API Key，纯 Python 标准库**；实时来源的可用性取决于网络与平台限制。
 
 <details>
 <summary>它其实还能做另外三件事（点开）——但你只需记住上面那一件</summary>
@@ -34,7 +34,7 @@
 
 ## 别人怎么装（Install）
 
-**前置**：① 一个支持 Skill 的 agent（Claude Code / Cursor / Codex CLI 等，runtime 中立）；② Python 3.8+（脚本**零 pip 依赖**，纯标准库）；③ 联网。
+**前置**：① Claude Code、Codex 或支持 `SKILL.md` 的 agent；② Python 3.8+（脚本**零 pip 依赖**）；③ 联网。
 
 **一键安装（推荐）**：
 ```bash
@@ -44,13 +44,24 @@ curl -fsSL https://raw.githubusercontent.com/hjxccc/nowledge/main/install.sh | b
 # Windows PowerShell
 irm https://raw.githubusercontent.com/hjxccc/nowledge/main/install.ps1 | iex
 ```
-装好后 agent 自动加载 `SKILL.md`，**对它说人话即可**，无需记命令。
 
-**手动装**：`git clone https://github.com/hjxccc/nowledge ~/.claude/skills/nowledge`，
-或项目内 `.claude/skills/nowledge/`（仅该项目可用）。
+默认安装到 Claude Code。安装到其他约定目录：
+
+```bash
+# macOS / Linux / Git-Bash：claude（默认）/ codex / agents
+curl -fsSL https://raw.githubusercontent.com/hjxccc/nowledge/main/install.sh | NOWLEDGE_TARGET=codex bash
+
+# Windows PowerShell
+$env:NOWLEDGE_TARGET="codex"; irm https://raw.githubusercontent.com/hjxccc/nowledge/main/install.ps1 | iex
+```
+
+也可用 `NOWLEDGE_DIR` 指定任意绝对目录，它的优先级高于 `NOWLEDGE_TARGET`。装好后重启或让 agent 重新扫描 Skills。
+
+**手动装**：clone 到 `~/.claude/skills/nowledge`、`~/.codex/skills/nowledge` 或 `~/.agents/skills/nowledge`；项目级目录是否生效取决于具体 runtime。
 
 **可选增强**（不装也能用核心）：
 - `export GITHUB_TOKEN=xxx` —— 发现模式提高 GitHub 限额（匿名 60 次/时）。
+- [Agent-Reach](https://github.com/Panniantong/Agent-Reach) / `twitter-cli` —— 已认证时让 X 源优先做 Latest 关键词真搜索；未安装、未登录或搜索失败会自动退回免登录 syndication。
 - `web-access` skill + 一个 Chromium 浏览器 —— 只为微信/知乎的 CDP 兜底；核心 T0 源（HN/arXiv/GitHub/context7/掘金）不需要它。
 
 ---
@@ -105,6 +116,8 @@ examples/
 
 ---
 
-## 现状（2026-07-08）
+## 现状（2026-07-15）
 
-四种意图（快答/发现/深学/追踪）全通；judgment 层纯 stdlib 零 key、已实测联网跑通（HN/GitHub/arXiv/掘金/公众号/context7/**X**）；快答新增 **WebSearch 为一等新鲜源**（覆盖极新主题）；**X 源经官方 syndication 端点实测跑通**（盯 14 个顶级 AI 账号时间线，走 curl 绕 TLS 指纹反爬 + 30min 缓存）；两支路（software/ai-research）冷启动验证、原理源 context7 自动兜底、公众号 CDP 兜底实测通过；触发词经 4 轮独立盲测；darwin 评审 90.7 分。**零 live-unverified 项。**
+当前为 **beta**。深学闭环和四种意图已提供可运行实现；确定性核心由单元测试覆盖，示例包通过质量 gate。HN、GitHub、arXiv、掘金、公众号、context7 与 X 都做过作者环境实测，但实时来源会受登录态、反爬、限流和网络影响。
+
+X 源优先使用已认证的 `twitter-cli` 做 Latest 关键词搜索；未安装、未登录或失败时，仅降级到官方 syndication 的固定账号公开时间线，因此**免登录降级不等于全站 X 搜索**。公开发布前仍会继续补充真实主题评测集与跨平台安装验证。

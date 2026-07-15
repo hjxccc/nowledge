@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from collections import defaultdict
 
+from lib.dedupe import normalize_url
+
 RRF_K = 60
 
 
@@ -17,14 +19,30 @@ def weighted_rrf(per_source: dict[str, list], subquery_weight: float = 1.0) -> l
     score: dict[str, float] = defaultdict(float)
     for _src, items in per_source.items():
         for rank, c in enumerate(items):
-            key = c.url
-            agg.setdefault(key, c)
+            key = normalize_url(c.url)
+            current = agg.get(key)
+            if current is None or c.weight > current.weight:  # type: ignore[attr-defined]
+                agg[key] = c
             score[key] += subquery_weight * c.weight / (RRF_K + rank + 1)
     for key, c in agg.items():
         c.rrf_score = score[key]  # type: ignore[attr-defined]
     fused = list(agg.values())
     fused.sort(key=lambda x: x.rrf_score, reverse=True)
     return fused
+
+
+def per_source_cap(cands: list, cap: int = 3) -> list:
+    """每个来源最多保留 cap 条，保持输入顺序，防止快答被单源垄断。"""
+    seen: dict[str, int] = defaultdict(int)
+    out = []
+    for c in cands:
+        source = (c.source or "").strip().lower()
+        if source and seen[source] >= cap:
+            continue
+        if source:
+            seen[source] += 1
+        out.append(c)
+    return out
 
 
 def per_author_cap(cands: list, cap: int = 2) -> list:

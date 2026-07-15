@@ -1,4 +1,8 @@
-"""X (Twitter) via 官方 syndication 端点 + 精选 AI 账号时间线（免 key / 免登录 / 不打反爬）。
+"""X (Twitter) via twitter-cli 真搜索 + syndication 免登录降级。
+
+优先路径：如果本机存在 Agent-Reach 推荐的 ``twitter-cli``（命令名 ``twitter``），
+直接做 Latest 关键词搜索并读取 JSON。命令缺失、未认证、限流或格式变化时，不让接地
+流程失败，自动退回下面的 syndication 固定账号方案。
 
 背景（2026-07 实测走过的两条路）：
   ✗ 爬 X 搜索页（CDP 借登录态）——X 检测自动化浏览器直接喂白页，抽 0 条，死路。
@@ -16,6 +20,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import subprocess
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -72,6 +77,16 @@ def _write_cache(handle: str, rows: list[dict]) -> None:
         pass
 
 
+def _reuse_stale(handle: str) -> list[dict]:
+    """网络失败时复用旧快照并刷新冷却时间，避免每次查询重新撞限流。"""
+    rows = _read_cache(handle, allow_stale=True)
+    if rows is not None:
+        _write_cache(handle, rows)
+        return rows
+    _write_cache(handle, [])
+    return []
+
+
 def _fetch_timeline(handle: str) -> list[dict]:
     """拉一个账号时间线，抽 [{text,url,author,fav,rt,created}]。带缓存 + 429 回退旧缓存。"""
     fresh = _read_cache(handle)
@@ -90,16 +105,16 @@ def _fetch_timeline(handle: str) -> list[dict]:
         raw = p.stdout.decode("utf-8", "replace")
     except Exception:
         # curl 缺失/网络错 → 有旧缓存就用旧的，否则空
-        return _read_cache(handle, allow_stale=True) or []
+        return _reuse_stale(handle)
     if not raw:
-        return _read_cache(handle, allow_stale=True) or []
+        return _reuse_stale(handle)
     m = _NEXT_DATA_RE.search(raw)
     if not m:
-        return _read_cache(handle, allow_stale=True) or []
+        return _reuse_stale(handle)
     try:
         data = json.loads(m.group(1))
     except Exception:
-        return _read_cache(handle, allow_stale=True) or []
+        return _reuse_stale(handle)
 
     rows: list[dict] = []
     seen: set[str] = set()
@@ -123,8 +138,7 @@ def _fetch_timeline(handle: str) -> list[dict]:
                 walk(v)
 
     walk(data)
-    if rows:
-        _write_cache(handle, rows)
+    _write_cache(handle, rows)
     return rows
 
 
@@ -136,13 +150,108 @@ def _parse_dt(created: str):
         return None
 
 
+def _parse_cli_dt(value: str):
+    """兼容 twitter-cli 的 ISO 日期和 syndication 的 Twitter 日期。"""
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return _parse_dt(value)
+
+
+def _cli_rows(data) -> list[dict]:
+    """取 twitter-cli schema envelope 中的推文列表，兼容少量版本差异。"""
+    if isinstance(data, list):
+        return [row for row in data if isinstance(row, dict)]
+    if isinstance(data, dict):
+        for key in ("tweets", "items", "results"):
+            rows = data.get(key)
+            if isinstance(rows, list):
+                return [row for row in rows if isinstance(row, dict)]
+    return []
+
+
+def _cli_author(row: dict) -> str:
+    author = row.get("author") or row.get("user") or {}
+    if isinstance(author, str):
+        handle = author
+    else:
+        handle = (author.get("username") or author.get("screen_name")
+                  or author.get("screenName") or author.get("handle") or "")
+    handle = handle or row.get("username") or row.get("screen_name") or row.get("screenName") or ""
+    handle = str(handle).strip().lstrip("@")
+    return "@" + handle if handle else ""
+
+
+def _twitter_cli_authenticated(command: str) -> bool:
+    """快速认证预检，避免未登录 CLI 把降级路径拖到搜索超时。"""
+    try:
+        completed = subprocess.run(
+            [command, "status", "--json"], capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=10,
+            env={**os.environ, "PYTHONIOENCODING": "utf-8"},
+        )
+        payload = json.loads(completed.stdout.strip())
+    except (OSError, subprocess.TimeoutExpired, TypeError, json.JSONDecodeError):
+        return False
+    return (completed.returncode == 0 and payload.get("ok") is True
+            and payload.get("data", {}).get("authenticated") is True)
+
+
+def _search_twitter_cli(query: str, limit: int) -> list[Candidate] | None:
+    """调用 twitter-cli；不可用/失败返回 None，让调用方降级 syndication。"""
+    command = shutil.which("twitter")
+    if not command or not _twitter_cli_authenticated(command):
+        return None
+    try:
+        completed = subprocess.run(
+            [command, "search", query, "-t", "Latest", "--max", str(limit),
+             "--full-text", "--json"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=35, env={**os.environ, "PYTHONIOENCODING": "utf-8"},
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if completed.returncode != 0:
+        return None
+    try:
+        payload = json.loads(completed.stdout.strip())
+    except (TypeError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict) or payload.get("ok") is not True:
+        return None
+
+    out: list[Candidate] = []
+    for row in _cli_rows(payload.get("data")):
+        text = (row.get("text") or row.get("full_text") or row.get("fullText") or "")
+        text = re.sub(r"\s+", " ", str(text)).strip()
+        tweet_id = str(row.get("id") or row.get("id_str") or row.get("rest_id") or "")
+        author = _cli_author(row)
+        url = str(row.get("url") or row.get("tweetUrl") or row.get("tweet_url") or "")
+        if not url and tweet_id and author:
+            url = f"https://x.com/{author[1:]}/status/{tweet_id}"
+        if not text or not url:
+            continue
+        created = str(row.get("created_at") or row.get("createdAt") or row.get("created") or "")
+        dt = _parse_cli_dt(created)
+        out.append(Candidate(
+            source="x", title=text[:120], url=url, summary=text[:280], author=author,
+            published=dt.strftime("%Y-%m-%d") if dt else "", rank=len(out),
+            weight=WEIGHT, role=ROLE_PITFALL,
+        ))
+        if len(out) >= limit:
+            break
+    return out or None
+
+
 def _terms(query: str) -> list[str]:
     # 拆出有意义的检索词（长度>2、去纯符号），中英都留
     toks = re.split(r"[\s,，、/|]+", query.strip())
     return [t for t in toks if len(t) > 2]
 
 
-def search(query: str, limit: int = 10) -> list[Candidate]:
+def _search_syndication(query: str, limit: int = 10) -> list[Candidate]:
     terms = [t.lower() for t in _terms(query)]
     if not terms:
         return []
@@ -193,3 +302,8 @@ def search(query: str, limit: int = 10) -> list[Candidate]:
             role=ROLE_PITFALL,
         ))
     return out
+
+
+def search(query: str, limit: int = 10) -> list[Candidate]:
+    """优先真实关键词搜索；twitter-cli 不可用时保持原免登录能力。"""
+    return _search_twitter_cli(query, limit) or _search_syndication(query, limit)

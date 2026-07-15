@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 import sys
@@ -56,17 +57,27 @@ def _backfill_principle(topic: str, sources: list[str], result: list[dict]) -> l
 def run(topic: str, sources: list[str], per_source: int, reps: int,
         quick: bool = False, backfill: bool = True) -> list[dict]:
     per_source_lists: dict[str, list] = {}
-    for s in sources:
+
+    def fetch(s: str) -> tuple[str, list | None, Exception | None]:
         mod = ADAPTERS.get(s)
         if not mod:
-            print(f"[skip] 未知源 {s}", file=sys.stderr)
-            continue
+            return s, None, None
         try:
-            hits = mod.search(topic, per_source)
+            return s, mod.search(topic, per_source), None
+        except Exception as e:
+            return s, None, e
+
+    workers = min(4, max(1, len(sources)))
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        for s, hits, error in pool.map(fetch, sources):
+            if hits is None and error is None:
+                print(f"[skip] 未知源 {s}", file=sys.stderr)
+                continue
+            if error is not None:
+                print(f"[fail] {s} 采集失败（降级跳过）: {error}", file=sys.stderr)
+                continue
             per_source_lists[s] = hits
             print(f"[ok] {s}: {len(hits)} 条", file=sys.stderr)
-        except Exception as e:
-            print(f"[fail] {s} 采集失败（降级跳过）: {e}", file=sys.stderr)
 
     # 踩坑 retag：实操源里带"避坑/血泪/教训"的文本身就是踩坑源 → 补 zh 踩坑格，不靠知乎登录
     from lib.common import ROLE_PITFALL, looks_like_pitfall  # noqa: E402
@@ -82,6 +93,10 @@ def run(topic: str, sources: list[str], per_source: int, reps: int,
 
     if quick:  # 快答：省掉聚类/MMR，dedupe→RRF 直接取前几条，尽量快
         fused.sort(key=lambda x: x.final_score, reverse=True)
+        active_sources = sum(bool(items) for items in per_source_lists.values())
+        if active_sources >= 2:
+            cap = max(1, (reps + active_sources - 1) // active_sources)
+            fused = F.per_source_cap(fused, cap=cap)
         result = [c.to_dict() for c in F.per_author_cap(fused, cap=2)[:reps]]
     else:
         reps_out = []

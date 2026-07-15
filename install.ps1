@@ -1,31 +1,41 @@
-# Nowledge 一键安装（Windows PowerShell）
-# 用法：irm https://raw.githubusercontent.com/hjxccc/nowledge/main/install.ps1 | iex
+# Nowledge installer for Windows PowerShell.
+# Usage: irm https://raw.githubusercontent.com/hjxccc/nowledge/main/install.ps1 | iex
 $ErrorActionPreference = "Stop"
 
 $Repo = "https://github.com/hjxccc/nowledge.git"
-$Dest = if ($env:NOWLEDGE_DIR) { $env:NOWLEDGE_DIR } else { "$HOME\.claude\skills\nowledge" }
+$Target = if ($env:NOWLEDGE_TARGET) { $env:NOWLEDGE_TARGET.ToLowerInvariant() } else { "claude" }
+$Dest = if ($env:NOWLEDGE_DIR) {
+  $env:NOWLEDGE_DIR
+} else {
+  switch ($Target) {
+    "claude" { "$HOME\.claude\skills\nowledge" }
+    "codex"  { "$HOME\.codex\skills\nowledge" }
+    "agents" { "$HOME\.agents\skills\nowledge" }
+    default { throw "Unknown NOWLEDGE_TARGET '$Target'. Use claude, codex, agents, or set NOWLEDGE_DIR." }
+  }
+}
 
-Write-Host "→ 安装 Nowledge 到 $Dest"
+Write-Host "Installing Nowledge to $Dest"
 if (Test-Path "$Dest\.git") {
-  Write-Host "  已存在，拉取更新…"
+  Write-Host "  Existing checkout found; pulling updates..."
   git -C $Dest pull --ff-only
 } else {
   New-Item -ItemType Directory -Force -Path (Split-Path $Dest) | Out-Null
   git clone --depth 1 $Repo $Dest
 }
 
-# 自检 Python
+# Check Python.
 $py = Get-Command python -ErrorAction SilentlyContinue
 if ($py) {
   $ver = (& python -V) 2>&1
-  Write-Host "  ✓ $ver（需 3.8+）"
+  Write-Host "  $ver (3.8+ required)"
 } else {
-  Write-Host "  ⚠ 未检测到 Python，脚本类功能需 Python 3.8+"
+  Write-Host "  WARNING: Python was not found; script features require Python 3.8+."
 }
 
 Write-Host ""
-Write-Host "✓ 安装完成。重启你的 agent，然后直接说人话："
-Write-Host '    "介绍下最近火的 XX"      → 快答现查现纠'
-Write-Host '    "用 Nowledge 带我学 XX"  → 深学学习包'
+Write-Host "Installation complete. Restart your agent, then try:"
+Write-Host '    "Use Nowledge to explain the latest changes in XX"'
+Write-Host '    "Use Nowledge to help me learn XX"'
 Write-Host ""
-Write-Host "文档：$Dest\README.md"
+Write-Host "Documentation: $Dest\README.md"

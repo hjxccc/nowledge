@@ -1,0 +1,6 @@
+interface:
+  display_name: "Nowledge"
+  short_description: "多源接地的技术学习、追踪与复训系统"
+  default_prompt: "Use $nowledge to research this technical topic and turn it into a grounded learning path."
+policy:
+  allow_implicit_invocation: true

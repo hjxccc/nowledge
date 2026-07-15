@@ -4,7 +4,17 @@
 set -e
 
 REPO="https://github.com/hjxccc/nowledge.git"
-DEST="${NOWLEDGE_DIR:-$HOME/.claude/skills/nowledge}"
+TARGET="${NOWLEDGE_TARGET:-claude}"
+if [ -n "${NOWLEDGE_DIR:-}" ]; then
+  DEST="$NOWLEDGE_DIR"
+else
+  case "$TARGET" in
+    claude) DEST="$HOME/.claude/skills/nowledge" ;;
+    codex)  DEST="$HOME/.codex/skills/nowledge" ;;
+    agents) DEST="$HOME/.agents/skills/nowledge" ;;
+    *) echo "未知 NOWLEDGE_TARGET '$TARGET'；支持 claude、codex、agents，或设置 NOWLEDGE_DIR。" >&2; exit 2 ;;
+  esac
+fi
 
 echo "→ 安装 Nowledge 到 $DEST"
 if [ -d "$DEST/.git" ]; then

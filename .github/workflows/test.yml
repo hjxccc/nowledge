@@ -1,0 +1,30 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.8", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Unit tests
+        run: python -m unittest discover -s scripts/tests -v
+      - name: Compile scripts
+        run: python -m compileall -q scripts
+      - name: Validate shell installer
+        run: bash -n install.sh
+      - name: Validate example package
+        run: python scripts/gate.py examples/loop-engineering-nowledge --strict

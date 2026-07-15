@@ -25,3 +25,7 @@ Thumbs.db
 
 # 演示 gif 默认不入库（不太好的别误 push；选定好的用 git add -f 强制收）
 *.gif
+
+# Cairn 个人工作足迹（团队资产 .cairn/sop、.cairn/docs 仍可提交）
+.cairn/tasks/
+.cairn/spec/pitfalls.md
